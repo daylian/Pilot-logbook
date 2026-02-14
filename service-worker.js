@@ -1,7 +1,7 @@
 const CACHE_NAME = 'pilot-logbook-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
+  '/Pilot-logbook/',
+  '/Pilot-logbook/index.html',
   'https://unpkg.com/react@18/umd/react.production.min.js',
   'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
   'https://unpkg.com/@babel/standalone/babel.min.js',
