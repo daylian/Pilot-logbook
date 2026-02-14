@@ -6,6 +6,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Pilot Logbook">
+    <meta name="theme-color" content="#2563EB">
+    <link rel="manifest" href="manifest.json">
     <title>Pilot Logbook</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -17,12 +19,134 @@
         .app-container { min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
         .autocomplete-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #e5e7eb; }
         .autocomplete-item:hover { background: #f3f4f6; }
+        .install-prompt { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #2563EB; color: white; padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 1000; display: none; }
+        .install-prompt.show { display: block; }
     </style>
 </head>
 <body>
     <div id="root"></div>
+    <div id="install-prompt" class="install-prompt">
+        <span>Install Pilot Logbook for offline use!</span>
+        <button onclick="installApp()" style="margin-left: 12px; background: white; color: #2563EB; border: none; padding: 6px 12px; border-radius: 4px; font-weight: bold; cursor: pointer;">Install</button>
+        <button onclick="dismissInstall()" style="margin-left: 8px; background: transparent; color: white; border: 1px solid white; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Later</button>
+    </div>
+
+    <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registered: ', registration);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+
+        // PWA Install Prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('install-prompt').classList.add('show');
+        });
+
+        function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                    }
+                    deferredPrompt = null;
+                    document.getElementById('install-prompt').classList.remove('show');
+                });
+            }
+        }
+
+        function dismissInstall() {
+            document.getElementById('install-prompt').classList.remove('show');
+        }
+    </script>
+
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
+        
+        // Aircraft Database
+        const AIRCRAFT_DB = {
+            'C172': { name: 'Cessna 172', engineType: 'Piston', engines: 'Single', category: 'SEP' },
+            'C152': { name: 'Cessna 152', engineType: 'Piston', engines: 'Single', category: 'SEP' },
+            'C150': { name: 'Cessna 150', engineType: 'Piston', engines: 'Single', category: 'SEP' },
+            'C182': { name: 'Cessna 182', engineType: 'Piston', engines: 'Single', category: 'SEP' },
+            'PA28': { name: 'Piper Cherokee', engineType: 'Piston', engines: 'Single', category: 'SEP' },
+            'PA-28': { name: 'Piper Cherokee', engineType: 'Piston', engines: 'Single', category: 'SEP' },
+            'PA32': { name: 'Piper Saratoga', engineType: 'Piston', engines: 'Single', category: 'SEP' },
+            'PA-32': { name: 'Piper Saratoga', engineType: 'Piston', engines: 'Single', category: 'SEP' },
+            'SR20': { name: 'Cirrus SR20', engineType: 'Piston', engines: 'Single', category: 'SEP' },
+            'SR22': { name: 'Cirrus SR22', engineType: 'Piston', engines: 'Single', category: 'SEP' },
+            'DA40': { name: 'Diamond DA40', engineType: 'Piston', engines: 'Single', category: 'SEP' },
+            'DA20': { name: 'Diamond DA20', engineType: 'Piston', engines: 'Single', category: 'SEP' },
+            'PA44': { name: 'Piper Seminole', engineType: 'Piston', engines: 'Multi', category: 'MEP' },
+            'PA-44': { name: 'Piper Seminole', engineType: 'Piston', engines: 'Multi', category: 'MEP' },
+            'PA34': { name: 'Piper Seneca', engineType: 'Piston', engines: 'Multi', category: 'MEP' },
+            'PA-34': { name: 'Piper Seneca', engineType: 'Piston', engines: 'Multi', category: 'MEP' },
+            'BE58': { name: 'Baron 58', engineType: 'Piston', engines: 'Multi', category: 'MEP' },
+            'BE55': { name: 'Baron 55', engineType: 'Piston', engines: 'Multi', category: 'MEP' },
+            'C310': { name: 'Cessna 310', engineType: 'Piston', engines: 'Multi', category: 'MEP' },
+            'DA42': { name: 'Diamond DA42', engineType: 'Piston', engines: 'Multi', category: 'MEP' },
+            'PC12': { name: 'Pilatus PC-12', engineType: 'Turboprop', engines: 'Single', category: 'SET' },
+            'TBM850': { name: 'TBM 850', engineType: 'Turboprop', engines: 'Single', category: 'SET' },
+            'TBM900': { name: 'TBM 900', engineType: 'Turboprop', engines: 'Single', category: 'SET' },
+            'BE200': { name: 'King Air 200', engineType: 'Turboprop', engines: 'Multi', category: 'MET' },
+            'BE300': { name: 'King Air 300', engineType: 'Turboprop', engines: 'Multi', category: 'MET' },
+            'BE350': { name: 'King Air 350', engineType: 'Turboprop', engines: 'Multi', category: 'MET' },
+            'DHC6': { name: 'Twin Otter', engineType: 'Turboprop', engines: 'Multi', category: 'MET' },
+            'DHC8': { name: 'Dash 8', engineType: 'Turboprop', engines: 'Multi', category: 'MET' },
+            'Q400': { name: 'Q400', engineType: 'Turboprop', engines: 'Multi', category: 'MET' },
+            'ATR42': { name: 'ATR 42', engineType: 'Turboprop', engines: 'Multi', category: 'MET' },
+            'ATR72': { name: 'ATR 72', engineType: 'Turboprop', engines: 'Multi', category: 'MET' },
+            'SF340': { name: 'Saab 340', engineType: 'Turboprop', engines: 'Multi', category: 'MET' },
+            'CRJ200': { name: 'CRJ-200', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'CRJ700': { name: 'CRJ-700', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'CRJ900': { name: 'CRJ-900', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'CRJ1000': { name: 'CRJ-1000', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'ERJ145': { name: 'ERJ-145', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'ERJ170': { name: 'E170', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'ERJ175': { name: 'E175', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'E170': { name: 'E170', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'E175': { name: 'E175', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'E190': { name: 'E190', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'E195': { name: 'E195', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'B737': { name: 'Boeing 737', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'B738': { name: 'Boeing 737-800', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'B739': { name: 'Boeing 737-900', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'B37M': { name: 'Boeing 737 MAX', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'B38M': { name: 'Boeing 737 MAX 8', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'B39M': { name: 'Boeing 737 MAX 9', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'B757': { name: 'Boeing 757', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'B767': { name: 'Boeing 767', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'B777': { name: 'Boeing 777', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'B787': { name: 'Boeing 787', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'B747': { name: 'Boeing 747', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'A320': { name: 'Airbus A320', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'A319': { name: 'Airbus A319', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'A321': { name: 'Airbus A321', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'A318': { name: 'Airbus A318', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'A330': { name: 'Airbus A330', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'A340': { name: 'Airbus A340', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'A350': { name: 'Airbus A350', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'A380': { name: 'Airbus A380', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'MD80': { name: 'MD-80', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'MD88': { name: 'MD-88', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+        };
+
+        const lookupAircraft = (code) => {
+            const upper = code.toUpperCase().trim();
+            return AIRCRAFT_DB[upper] || null;
+        };
+
         const Plane = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg>);
         const Save = () => (<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>);
         const Download = () => (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>);
@@ -34,7 +158,7 @@
             const [crewMembers, setCrewMembers] = useState([]);
             const [aircraftRegistry, setAircraftRegistry] = useState([]);
             const [currentFlight, setCurrentFlight] = useState({
-                date: new Date().toISOString().split('T')[0], aircraft: '', tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', blockTime: '', flightTime: '', totalTime: '', pic: '', sic: '', night: '', day: '', instrument: '', dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: ''
+                date: new Date().toISOString().split('T')[0], aircraft: '', aircraftInfo: null, tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', blockTime: '', flightTime: '', totalTime: '', pic: '', sic: '', night: '', day: '', instrument: '', dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: ''
             });
             const [showSettings, setShowSettings] = useState(false);
             const [useLocalTime, setUseLocalTime] = useState(false);
@@ -94,6 +218,15 @@
                     setCurrentFlight(p => ({ ...p, flightTime: ft, totalTime: ft }));
                 }
             }, [currentFlight.out, currentFlight.in, currentFlight.off, currentFlight.on, useLocalTime]);
+
+            const handleAircraftChange = (value) => {
+                const aircraftInfo = lookupAircraft(value);
+                setCurrentFlight({
+                    ...currentFlight, 
+                    aircraft: value,
+                    aircraftInfo: aircraftInfo
+                });
+            };
 
             const handleCrewMemberChange = (value) => {
                 setCurrentFlight({...currentFlight, crewMember: value});
@@ -161,7 +294,7 @@
                 }
 
                 setFlights([{ ...currentFlight, id: Date.now(), timeZone: useLocalTime ? 'Local' : 'UTC' }, ...flights]);
-                setCurrentFlight({ date: new Date().toISOString().split('T')[0], aircraft: '', tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', blockTime: '', flightTime: '', totalTime: '', pic: '', sic: '', night: '', day: '', instrument: '', dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: '' });
+                setCurrentFlight({ date: new Date().toISOString().split('T')[0], aircraft: '', aircraftInfo: null, tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', blockTime: '', flightTime: '', totalTime: '', pic: '', sic: '', night: '', day: '', instrument: '', dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: '' });
                 alert('Flight logged!');
             };
 
@@ -177,9 +310,76 @@
                 return a;
             }, { totalTime: 0, pic: 0, sic: 0, day: 0, night: 0, instrument: 0, dayLandings: 0, nightLandings: 0 });
 
+            const calculateRollingTotals = () => {
+                const now = new Date();
+                const ninetyDaysAgo = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+                const sixMonthsAgo = new Date(now.getTime() - (180 * 24 * 60 * 60 * 1000));
+                const oneYearAgo = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000));
+
+                const rolling90 = flights.filter(f => new Date(f.date) >= ninetyDaysAgo)
+                    .reduce((sum, f) => sum + parseFloat(f.totalTime || 0), 0);
+                
+                const rolling180 = flights.filter(f => new Date(f.date) >= sixMonthsAgo)
+                    .reduce((sum, f) => sum + parseFloat(f.totalTime || 0), 0);
+                
+                const rolling365 = flights.filter(f => new Date(f.date) >= oneYearAgo)
+                    .reduce((sum, f) => sum + parseFloat(f.totalTime || 0), 0);
+
+                return { rolling90, rolling180, rolling365 };
+            };
+
+            const calculateCategoryTotals = () => {
+                const categories = {
+                    SEP: 0,  // Single Engine Piston
+                    MEP: 0,  // Multi Engine Piston
+                    SET: 0,  // Single Engine Turbine
+                    MET: 0,  // Multi Engine Turbine
+                    Jet: 0   // Jet
+                };
+                
+                flights.forEach(f => {
+                    const time = parseFloat(f.totalTime || 0);
+                    if (f.aircraftInfo && f.aircraftInfo.category) {
+                        categories[f.aircraftInfo.category] += time;
+                    }
+                });
+                
+                return categories;
+            };
+
+            const rollingTotals = calculateRollingTotals();
+            const categoryTotals = calculateCategoryTotals();
+
             const exportToCSV = () => {
-                const headers = ['Date','Aircraft','Tail','Registration','From','To','OUT','OFF','ON','IN','Block','Flight','PIC','SIC','Day','Night','IFR','DayLdg','NightLdg','Appr','Crew','Role','Remarks'];
-                const rows = flights.map(f => [f.date,f.aircraft,f.tailNumber,f.registration,f.from,f.to,f.out,f.off,f.on,f.in,f.blockTime,f.flightTime,f.pic,f.sic,f.day,f.night,f.instrument,f.dayLandings,f.nightLandings,f.approaches,f.crewMember,f.role,f.remarks]);
+                const headers = ['Date','Aircraft','Type','Engine','Engines','Tail','Registration','From','To','OUT','OFF','ON','IN','Block','Flight','PIC','SIC','Day','Night','IFR','DayLdg','NightLdg','Appr','Crew','Role','Remarks'];
+                const rows = flights.map(f => [
+                    f.date,
+                    f.aircraft,
+                    f.aircraftInfo ? f.aircraftInfo.name : '',
+                    f.aircraftInfo ? f.aircraftInfo.engineType : '',
+                    f.aircraftInfo ? f.aircraftInfo.engines : '',
+                    f.tailNumber,
+                    f.registration,
+                    f.from,
+                    f.to,
+                    f.out,
+                    f.off,
+                    f.on,
+                    f.in,
+                    f.blockTime,
+                    f.flightTime,
+                    f.pic,
+                    f.sic,
+                    f.day,
+                    f.night,
+                    f.instrument,
+                    f.dayLandings,
+                    f.nightLandings,
+                    f.approaches,
+                    f.crewMember,
+                    f.role,
+                    f.remarks
+                ]);
                 const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
                 const blob = new Blob([csv], { type: 'text/csv' });
                 const url = window.URL.createObjectURL(blob);
@@ -192,7 +392,7 @@
             const printLogbook = () => {
                 const printWindow = window.open('', '_blank');
                 const sortedFlights = [...flights].sort((a, b) => new Date(a.date) - new Date(b.date));
-                printWindow.document.write(`<!DOCTYPE html><html><head><title>Pilot Logbook</title><style>body{font-family:Arial,sans-serif;margin:20px}.print-header{text-align:center;margin-bottom:20px;font-size:18pt;font-weight:bold}.print-table{width:100%;border-collapse:collapse;font-size:7pt}.print-table th{background:#e0e0e0;border:1px solid black;padding:3px 2px;font-weight:bold;font-size:6pt;text-align:center}.print-table td{border:1px solid black;padding:2px 1px;font-size:7pt;text-align:center}.totals-row{background:#f5f5f5;font-weight:bold}</style></head><body><div class="print-header">PILOT LOGBOOK</div><table class="print-table"><thead><tr><th>Date</th><th>Aircraft</th><th>Tail#</th><th>Reg</th><th>From</th><th>To</th><th>OUT</th><th>OFF</th><th>ON</th><th>IN</th><th>Block</th><th>Flight</th><th>PIC</th><th>SIC</th><th>Day</th><th>Night</th><th>IFR</th><th>Day<br/>Ldg</th><th>Night<br/>Ldg</th><th>Appr</th><th>Crew</th><th>Role</th><th>Remarks</th></tr></thead><tbody>${sortedFlights.map(f => `<tr><td>${f.date}</td><td>${f.aircraft}</td><td>${f.tailNumber}</td><td>${f.registration}</td><td>${f.from}</td><td>${f.to}</td><td>${f.out}</td><td>${f.off}</td><td>${f.on}</td><td>${f.in}</td><td>${f.blockTime}</td><td>${f.flightTime}</td><td>${f.pic}</td><td>${f.sic}</td><td>${f.day}</td><td>${f.night}</td><td>${f.instrument}</td><td>${f.dayLandings}</td><td>${f.nightLandings}</td><td>${f.approaches}</td><td>${f.crewMember}</td><td>${f.role}</td><td style="text-align:left">${f.remarks}</td></tr>`).join('')}<tr class="totals-row"><td colspan="10"><strong>TOTALS</strong></td><td><strong>${totals.totalTime.toFixed(1)}</strong></td><td></td><td><strong>${totals.pic.toFixed(1)}</strong></td><td><strong>${totals.sic.toFixed(1)}</strong></td><td><strong>${totals.day.toFixed(1)}</strong></td><td><strong>${totals.night.toFixed(1)}</strong></td><td><strong>${totals.instrument.toFixed(1)}</strong></td><td><strong>${totals.dayLandings}</strong></td><td><strong>${totals.nightLandings}</strong></td><td colspan="4"></td></tr></tbody></table></body></html>`);
+                printWindow.document.write(`<!DOCTYPE html><html><head><title>Pilot Logbook</title><style>body{font-family:Arial,sans-serif;margin:20px}.print-header{text-align:center;margin-bottom:20px;font-size:18pt;font-weight:bold}.print-table{width:100%;border-collapse:collapse;font-size:6pt}.print-table th{background:#e0e0e0;border:1px solid black;padding:3px 2px;font-weight:bold;font-size:5pt;text-align:center}.print-table td{border:1px solid black;padding:2px 1px;font-size:6pt;text-align:center}.totals-row{background:#f5f5f5;font-weight:bold}.category-row{background:#e0e7ff;font-weight:bold}</style></head><body><div class="print-header">PILOT LOGBOOK</div><table class="print-table"><thead><tr><th>Date</th><th>Aircraft</th><th>Type</th><th>Engine</th><th>Tail#</th><th>Reg</th><th>From</th><th>To</th><th>OUT</th><th>OFF</th><th>ON</th><th>IN</th><th>Block</th><th>Flight</th><th>PIC</th><th>SIC</th><th>Day</th><th>Night</th><th>IFR</th><th>Day<br/>Ldg</th><th>Night<br/>Ldg</th><th>Appr</th><th>Crew</th><th>Role</th><th>Remarks</th></tr></thead><tbody>${sortedFlights.map(f => `<tr><td>${f.date}</td><td>${f.aircraft}</td><td>${f.aircraftInfo ? f.aircraftInfo.name : ''}</td><td>${f.aircraftInfo ? f.aircraftInfo.engineType : ''}</td><td>${f.tailNumber}</td><td>${f.registration}</td><td>${f.from}</td><td>${f.to}</td><td>${f.out}</td><td>${f.off}</td><td>${f.on}</td><td>${f.in}</td><td>${f.blockTime}</td><td>${f.flightTime}</td><td>${f.pic}</td><td>${f.sic}</td><td>${f.day}</td><td>${f.night}</td><td>${f.instrument}</td><td>${f.dayLandings}</td><td>${f.nightLandings}</td><td>${f.approaches}</td><td>${f.crewMember}</td><td>${f.role}</td><td style="text-align:left">${f.remarks}</td></tr>`).join('')}<tr class="totals-row"><td colspan="12"><strong>TOTALS</strong></td><td><strong>${totals.totalTime.toFixed(1)}</strong></td><td></td><td><strong>${totals.pic.toFixed(1)}</strong></td><td><strong>${totals.sic.toFixed(1)}</strong></td><td><strong>${totals.day.toFixed(1)}</strong></td><td><strong>${totals.night.toFixed(1)}</strong></td><td><strong>${totals.instrument.toFixed(1)}</strong></td><td><strong>${totals.dayLandings}</strong></td><td><strong>${totals.nightLandings}</strong></td><td colspan="4"></td></tr><tr class="category-row"><td colspan="12"><strong>CATEGORY TOTALS</strong></td><td colspan="3">SEP: ${categoryTotals.SEP.toFixed(1)}</td><td colspan="3">MEP: ${categoryTotals.MEP.toFixed(1)}</td><td colspan="3">Turbine: ${(categoryTotals.SET + categoryTotals.MET).toFixed(1)}</td><td colspan="4">Jet: ${categoryTotals.Jet.toFixed(1)}</td></tr></tbody></table></body></html>`);
                 printWindow.document.close();
                 setTimeout(() => printWindow.print(), 250);
             };
@@ -215,6 +415,45 @@
                                 <div><div className="text-sm text-gray-600">PIC</div><div className="text-2xl font-bold text-black">{totals.pic.toFixed(1)}</div></div>
                                 <div><div className="text-sm text-gray-600">Day/Night</div><div className="text-2xl font-bold text-black">{totals.day.toFixed(1)}/{totals.night.toFixed(1)}</div></div>
                                 <div><div className="text-sm text-gray-600">Landings</div><div className="text-2xl font-bold text-black">{totals.dayLandings + totals.nightLandings}</div></div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                                <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+                                    <div className="text-xs text-green-700 font-medium">Last 90 Days</div>
+                                    <div className="text-xl font-bold text-green-800">{rollingTotals.rolling90.toFixed(1)} hrs</div>
+                                </div>
+                                <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                                    <div className="text-xs text-yellow-700 font-medium">Last 6 Months</div>
+                                    <div className="text-xl font-bold text-yellow-800">{rollingTotals.rolling180.toFixed(1)} hrs</div>
+                                </div>
+                                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                                    <div className="text-xs text-purple-700 font-medium">Last 12 Months</div>
+                                    <div className="text-xl font-bold text-purple-800">{rollingTotals.rolling365.toFixed(1)} hrs</div>
+                                </div>
+                            </div>
+                            <div className="mt-4 p-4 bg-white rounded-lg border-2 border-indigo-200">
+                                <h3 className="text-sm font-bold text-indigo-800 mb-3">Flight Time by Category</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                    <div className="text-center">
+                                        <div className="text-xs text-gray-600">Single Piston</div>
+                                        <div className="text-lg font-bold text-indigo-700">{categoryTotals.SEP.toFixed(1)}</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-xs text-gray-600">Multi Piston</div>
+                                        <div className="text-lg font-bold text-indigo-700">{categoryTotals.MEP.toFixed(1)}</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-xs text-gray-600">Single Turbine</div>
+                                        <div className="text-lg font-bold text-indigo-700">{categoryTotals.SET.toFixed(1)}</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-xs text-gray-600">Multi Turbine</div>
+                                        <div className="text-lg font-bold text-indigo-700">{categoryTotals.MET.toFixed(1)}</div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="text-xs text-gray-600">Jet</div>
+                                        <div className="text-lg font-bold text-indigo-700">{categoryTotals.Jet.toFixed(1)}</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -275,7 +514,21 @@
                             <h2 className="text-xl font-bold mb-4">Log Flight</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div><label className="block text-sm font-medium mb-1">Date</label><input type="date" value={currentFlight.date} onChange={(e) => setCurrentFlight({...currentFlight, date: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
-                                <div><label className="block text-sm font-medium mb-1">Aircraft</label><input type="text" value={currentFlight.aircraft} onChange={(e) => setCurrentFlight({...currentFlight, aircraft: e.target.value})} placeholder="B737" className="w-full px-3 py-2 border rounded-lg" /></div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Aircraft</label>
+                                    <input 
+                                        type="text" 
+                                        value={currentFlight.aircraft} 
+                                        onChange={(e) => handleAircraftChange(e.target.value)} 
+                                        placeholder="B737" 
+                                        className="w-full px-3 py-2 border rounded-lg" 
+                                    />
+                                    {currentFlight.aircraftInfo && (
+                                        <div className="text-xs text-green-600 mt-1">
+                                            ✓ {currentFlight.aircraftInfo.name} - {currentFlight.aircraftInfo.engines} Engine {currentFlight.aircraftInfo.engineType}
+                                        </div>
+                                    )}
+                                </div>
                                 
                                 <div className="relative" ref={tailAutocompleteRef}>
                                     <label className="block text-sm font-medium mb-1">Tail Number</label>
@@ -407,6 +660,7 @@
                                     {flights.map((f) => (
                                         <div key={f.id} className="p-4 bg-gray-50 rounded-lg border hover:border-blue-300">
                                             <div className="font-medium text-lg">{f.date} - {f.aircraft} {f.tailNumber} ({f.registration})</div>
+                                            {f.aircraftInfo && <div className="text-xs text-gray-500">{f.aircraftInfo.name} - {f.aircraftInfo.engines} Engine {f.aircraftInfo.engineType}</div>}
                                             <div className="text-gray-600 mt-1">{f.from} → {f.to}</div>
                                             {f.crewMember && <div className="text-sm text-blue-600 mt-1">Crew: {f.crewMember} ({f.role})</div>}
                                             <div className="text-sm text-gray-500 mt-1">OUT: {f.out} | OFF: {f.off} | ON: {f.on} | IN: {f.in} {f.timeZone && `(${f.timeZone})`}</div>
