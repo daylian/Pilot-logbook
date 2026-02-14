@@ -32,29 +32,44 @@
         function PilotLogbook() {
             const [flights, setFlights] = useState([]);
             const [crewMembers, setCrewMembers] = useState([]);
+            const [aircraftRegistry, setAircraftRegistry] = useState([]);
             const [currentFlight, setCurrentFlight] = useState({
-                date: new Date().toISOString().split('T')[0], aircraft: '', tailNumber: '', from: '', to: '', out: '', off: '', on: '', in: '', blockTime: '', flightTime: '', totalTime: '', pic: '', sic: '', night: '', day: '', instrument: '', dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: ''
+                date: new Date().toISOString().split('T')[0], aircraft: '', tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', blockTime: '', flightTime: '', totalTime: '', pic: '', sic: '', night: '', day: '', instrument: '', dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: ''
             });
             const [showSettings, setShowSettings] = useState(false);
             const [useLocalTime, setUseLocalTime] = useState(false);
             const [showAutocomplete, setShowAutocomplete] = useState(false);
+            const [showTailAutocomplete, setShowTailAutocomplete] = useState(false);
+            const [showRegAutocomplete, setShowRegAutocomplete] = useState(false);
             const [filteredCrewMembers, setFilteredCrewMembers] = useState([]);
+            const [filteredAircraft, setFilteredAircraft] = useState([]);
             const autocompleteRef = useRef(null);
+            const tailAutocompleteRef = useRef(null);
+            const regAutocompleteRef = useRef(null);
 
             useEffect(() => {
                 const saved = localStorage.getItem('pilotLogFlights');
                 const savedCrew = localStorage.getItem('pilotLogCrewMembers');
+                const savedAircraft = localStorage.getItem('pilotLogAircraftRegistry');
                 if (saved) setFlights(JSON.parse(saved));
                 if (savedCrew) setCrewMembers(JSON.parse(savedCrew));
+                if (savedAircraft) setAircraftRegistry(JSON.parse(savedAircraft));
             }, []);
 
             useEffect(() => { localStorage.setItem('pilotLogFlights', JSON.stringify(flights)); }, [flights]);
             useEffect(() => { localStorage.setItem('pilotLogCrewMembers', JSON.stringify(crewMembers)); }, [crewMembers]);
+            useEffect(() => { localStorage.setItem('pilotLogAircraftRegistry', JSON.stringify(aircraftRegistry)); }, [aircraftRegistry]);
 
             useEffect(() => {
                 const handleClickOutside = (event) => {
                     if (autocompleteRef.current && !autocompleteRef.current.contains(event.target)) {
                         setShowAutocomplete(false);
+                    }
+                    if (tailAutocompleteRef.current && !tailAutocompleteRef.current.contains(event.target)) {
+                        setShowTailAutocomplete(false);
+                    }
+                    if (regAutocompleteRef.current && !regAutocompleteRef.current.contains(event.target)) {
+                        setShowRegAutocomplete(false);
                     }
                 };
                 document.addEventListener('mousedown', handleClickOutside);
@@ -93,9 +108,45 @@
                 }
             };
 
+            const handleTailNumberChange = (value) => {
+                setCurrentFlight({...currentFlight, tailNumber: value});
+                if (value.length > 0) {
+                    const filtered = aircraftRegistry.filter(aircraft => 
+                        aircraft.tailNumber.toLowerCase().includes(value.toLowerCase())
+                    );
+                    setFilteredAircraft(filtered);
+                    setShowTailAutocomplete(filtered.length > 0);
+                } else {
+                    setShowTailAutocomplete(false);
+                }
+            };
+
+            const handleRegistrationChange = (value) => {
+                setCurrentFlight({...currentFlight, registration: value});
+                if (value.length > 0) {
+                    const filtered = aircraftRegistry.filter(aircraft => 
+                        aircraft.registration.toLowerCase().includes(value.toLowerCase())
+                    );
+                    setFilteredAircraft(filtered);
+                    setShowRegAutocomplete(filtered.length > 0);
+                } else {
+                    setShowRegAutocomplete(false);
+                }
+            };
+
             const selectCrewMember = (member) => {
                 setCurrentFlight({...currentFlight, crewMember: member.name, role: member.role});
                 setShowAutocomplete(false);
+            };
+
+            const selectAircraftByTail = (aircraft) => {
+                setCurrentFlight({...currentFlight, tailNumber: aircraft.tailNumber, registration: aircraft.registration});
+                setShowTailAutocomplete(false);
+            };
+
+            const selectAircraftByReg = (aircraft) => {
+                setCurrentFlight({...currentFlight, tailNumber: aircraft.tailNumber, registration: aircraft.registration});
+                setShowRegAutocomplete(false);
             };
 
             const addFlight = () => {
@@ -105,8 +156,12 @@
                     setCrewMembers([...crewMembers, { name: currentFlight.crewMember, role: currentFlight.role }]);
                 }
 
+                if (currentFlight.tailNumber && currentFlight.registration && !aircraftRegistry.find(a => a.tailNumber === currentFlight.tailNumber)) {
+                    setAircraftRegistry([...aircraftRegistry, { tailNumber: currentFlight.tailNumber, registration: currentFlight.registration }]);
+                }
+
                 setFlights([{ ...currentFlight, id: Date.now(), timeZone: useLocalTime ? 'Local' : 'UTC' }, ...flights]);
-                setCurrentFlight({ date: new Date().toISOString().split('T')[0], aircraft: '', tailNumber: '', from: '', to: '', out: '', off: '', on: '', in: '', blockTime: '', flightTime: '', totalTime: '', pic: '', sic: '', night: '', day: '', instrument: '', dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: '' });
+                setCurrentFlight({ date: new Date().toISOString().split('T')[0], aircraft: '', tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', blockTime: '', flightTime: '', totalTime: '', pic: '', sic: '', night: '', day: '', instrument: '', dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: '' });
                 alert('Flight logged!');
             };
 
@@ -123,8 +178,8 @@
             }, { totalTime: 0, pic: 0, sic: 0, day: 0, night: 0, instrument: 0, dayLandings: 0, nightLandings: 0 });
 
             const exportToCSV = () => {
-                const headers = ['Date','Aircraft','Tail','From','To','OUT','OFF','ON','IN','Block','Flight','PIC','SIC','Day','Night','IFR','DayLdg','NightLdg','Appr','Crew','Role','Remarks'];
-                const rows = flights.map(f => [f.date,f.aircraft,f.tailNumber,f.from,f.to,f.out,f.off,f.on,f.in,f.blockTime,f.flightTime,f.pic,f.sic,f.day,f.night,f.instrument,f.dayLandings,f.nightLandings,f.approaches,f.crewMember,f.role,f.remarks]);
+                const headers = ['Date','Aircraft','Tail','Registration','From','To','OUT','OFF','ON','IN','Block','Flight','PIC','SIC','Day','Night','IFR','DayLdg','NightLdg','Appr','Crew','Role','Remarks'];
+                const rows = flights.map(f => [f.date,f.aircraft,f.tailNumber,f.registration,f.from,f.to,f.out,f.off,f.on,f.in,f.blockTime,f.flightTime,f.pic,f.sic,f.day,f.night,f.instrument,f.dayLandings,f.nightLandings,f.approaches,f.crewMember,f.role,f.remarks]);
                 const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
                 const blob = new Blob([csv], { type: 'text/csv' });
                 const url = window.URL.createObjectURL(blob);
@@ -137,7 +192,7 @@
             const printLogbook = () => {
                 const printWindow = window.open('', '_blank');
                 const sortedFlights = [...flights].sort((a, b) => new Date(a.date) - new Date(b.date));
-                printWindow.document.write(`<!DOCTYPE html><html><head><title>Pilot Logbook</title><style>body{font-family:Arial,sans-serif;margin:20px}.print-header{text-align:center;margin-bottom:20px;font-size:18pt;font-weight:bold}.print-table{width:100%;border-collapse:collapse;font-size:7pt}.print-table th{background:#e0e0e0;border:1px solid black;padding:3px 2px;font-weight:bold;font-size:6pt;text-align:center}.print-table td{border:1px solid black;padding:2px 1px;font-size:7pt;text-align:center}.totals-row{background:#f5f5f5;font-weight:bold}</style></head><body><div class="print-header">PILOT LOGBOOK</div><table class="print-table"><thead><tr><th>Date</th><th>Aircraft</th><th>Tail#</th><th>From</th><th>To</th><th>OUT</th><th>OFF</th><th>ON</th><th>IN</th><th>Block</th><th>Flight</th><th>PIC</th><th>SIC</th><th>Day</th><th>Night</th><th>IFR</th><th>Day<br/>Ldg</th><th>Night<br/>Ldg</th><th>Appr</th><th>Crew</th><th>Role</th><th>Remarks</th></tr></thead><tbody>${sortedFlights.map(f => `<tr><td>${f.date}</td><td>${f.aircraft}</td><td>${f.tailNumber}</td><td>${f.from}</td><td>${f.to}</td><td>${f.out}</td><td>${f.off}</td><td>${f.on}</td><td>${f.in}</td><td>${f.blockTime}</td><td>${f.flightTime}</td><td>${f.pic}</td><td>${f.sic}</td><td>${f.day}</td><td>${f.night}</td><td>${f.instrument}</td><td>${f.dayLandings}</td><td>${f.nightLandings}</td><td>${f.approaches}</td><td>${f.crewMember}</td><td>${f.role}</td><td style="text-align:left">${f.remarks}</td></tr>`).join('')}<tr class="totals-row"><td colspan="9"><strong>TOTALS</strong></td><td><strong>${totals.totalTime.toFixed(1)}</strong></td><td></td><td><strong>${totals.pic.toFixed(1)}</strong></td><td><strong>${totals.sic.toFixed(1)}</strong></td><td><strong>${totals.day.toFixed(1)}</strong></td><td><strong>${totals.night.toFixed(1)}</strong></td><td><strong>${totals.instrument.toFixed(1)}</strong></td><td><strong>${totals.dayLandings}</strong></td><td><strong>${totals.nightLandings}</strong></td><td colspan="4"></td></tr></tbody></table></body></html>`);
+                printWindow.document.write(`<!DOCTYPE html><html><head><title>Pilot Logbook</title><style>body{font-family:Arial,sans-serif;margin:20px}.print-header{text-align:center;margin-bottom:20px;font-size:18pt;font-weight:bold}.print-table{width:100%;border-collapse:collapse;font-size:7pt}.print-table th{background:#e0e0e0;border:1px solid black;padding:3px 2px;font-weight:bold;font-size:6pt;text-align:center}.print-table td{border:1px solid black;padding:2px 1px;font-size:7pt;text-align:center}.totals-row{background:#f5f5f5;font-weight:bold}</style></head><body><div class="print-header">PILOT LOGBOOK</div><table class="print-table"><thead><tr><th>Date</th><th>Aircraft</th><th>Tail#</th><th>Reg</th><th>From</th><th>To</th><th>OUT</th><th>OFF</th><th>ON</th><th>IN</th><th>Block</th><th>Flight</th><th>PIC</th><th>SIC</th><th>Day</th><th>Night</th><th>IFR</th><th>Day<br/>Ldg</th><th>Night<br/>Ldg</th><th>Appr</th><th>Crew</th><th>Role</th><th>Remarks</th></tr></thead><tbody>${sortedFlights.map(f => `<tr><td>${f.date}</td><td>${f.aircraft}</td><td>${f.tailNumber}</td><td>${f.registration}</td><td>${f.from}</td><td>${f.to}</td><td>${f.out}</td><td>${f.off}</td><td>${f.on}</td><td>${f.in}</td><td>${f.blockTime}</td><td>${f.flightTime}</td><td>${f.pic}</td><td>${f.sic}</td><td>${f.day}</td><td>${f.night}</td><td>${f.instrument}</td><td>${f.dayLandings}</td><td>${f.nightLandings}</td><td>${f.approaches}</td><td>${f.crewMember}</td><td>${f.role}</td><td style="text-align:left">${f.remarks}</td></tr>`).join('')}<tr class="totals-row"><td colspan="10"><strong>TOTALS</strong></td><td><strong>${totals.totalTime.toFixed(1)}</strong></td><td></td><td><strong>${totals.pic.toFixed(1)}</strong></td><td><strong>${totals.sic.toFixed(1)}</strong></td><td><strong>${totals.day.toFixed(1)}</strong></td><td><strong>${totals.night.toFixed(1)}</strong></td><td><strong>${totals.instrument.toFixed(1)}</strong></td><td><strong>${totals.dayLandings}</strong></td><td><strong>${totals.nightLandings}</strong></td><td colspan="4"></td></tr></tbody></table></body></html>`);
                 printWindow.document.close();
                 setTimeout(() => printWindow.print(), 250);
             };
@@ -156,10 +211,10 @@
                                 </button>
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 p-4 bg-blue-50 rounded-lg">
-                                <div><div className="text-sm text-gray-600">Total Time</div><div className="text-2xl font-bold text-blue-600">{totals.totalTime.toFixed(1)}</div></div>
-                                <div><div className="text-sm text-gray-600">PIC</div><div className="text-2xl font-bold text-blue-600">{totals.pic.toFixed(1)}</div></div>
-                                <div><div className="text-sm text-gray-600">Day/Night</div><div className="text-2xl font-bold text-blue-600">{totals.day.toFixed(1)}/{totals.night.toFixed(1)}</div></div>
-                                <div><div className="text-sm text-gray-600">Landings</div><div className="text-2xl font-bold text-blue-600">{totals.dayLandings + totals.nightLandings}</div></div>
+                                <div><div className="text-sm text-gray-600">Total Time</div><div className="text-2xl font-bold text-black">{totals.totalTime.toFixed(1)}</div></div>
+                                <div><div className="text-sm text-gray-600">PIC</div><div className="text-2xl font-bold text-black">{totals.pic.toFixed(1)}</div></div>
+                                <div><div className="text-sm text-gray-600">Day/Night</div><div className="text-2xl font-bold text-black">{totals.day.toFixed(1)}/{totals.night.toFixed(1)}</div></div>
+                                <div><div className="text-sm text-gray-600">Landings</div><div className="text-2xl font-bold text-black">{totals.dayLandings + totals.nightLandings}</div></div>
                             </div>
                         </div>
                     </div>
@@ -195,6 +250,20 @@
                                             )}
                                         </div>
                                     </div>
+                                    <div className="p-4 bg-gray-50 rounded-lg">
+                                        <p className="text-sm text-gray-700 mb-2"><strong>Saved Aircraft:</strong></p>
+                                        <div className="space-y-1">
+                                            {aircraftRegistry.length === 0 ? (
+                                                <p className="text-xs text-gray-500">No aircraft saved yet</p>
+                                            ) : (
+                                                aircraftRegistry.map((aircraft, i) => (
+                                                    <div key={i} className="text-sm text-gray-600">
+                                                        {aircraft.tailNumber} - {aircraft.registration}
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
                                     <button onClick={() => setShowSettings(false)} className="px-4 py-2 bg-blue-600 text-white rounded-lg">Close</button>
                                 </div>
                             </div>
@@ -207,7 +276,55 @@
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div><label className="block text-sm font-medium mb-1">Date</label><input type="date" value={currentFlight.date} onChange={(e) => setCurrentFlight({...currentFlight, date: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
                                 <div><label className="block text-sm font-medium mb-1">Aircraft</label><input type="text" value={currentFlight.aircraft} onChange={(e) => setCurrentFlight({...currentFlight, aircraft: e.target.value})} placeholder="B737" className="w-full px-3 py-2 border rounded-lg" /></div>
-                                <div><label className="block text-sm font-medium mb-1">Tail#</label><input type="text" value={currentFlight.tailNumber} onChange={(e) => setCurrentFlight({...currentFlight, tailNumber: e.target.value})} placeholder="N12345" className="w-full px-3 py-2 border rounded-lg" /></div>
+                                
+                                <div className="relative" ref={tailAutocompleteRef}>
+                                    <label className="block text-sm font-medium mb-1">Tail Number</label>
+                                    <input 
+                                        type="text" 
+                                        value={currentFlight.tailNumber} 
+                                        onChange={(e) => handleTailNumberChange(e.target.value)}
+                                        placeholder="N12345" 
+                                        className="w-full px-3 py-2 border rounded-lg" 
+                                    />
+                                    {showTailAutocomplete && (
+                                        <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1">
+                                            {filteredAircraft.map((aircraft, i) => (
+                                                <div 
+                                                    key={i}
+                                                    onClick={() => selectAircraftByTail(aircraft)}
+                                                    className="autocomplete-item"
+                                                >
+                                                    {aircraft.tailNumber} - {aircraft.registration}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="relative" ref={regAutocompleteRef}>
+                                    <label className="block text-sm font-medium mb-1">Registration</label>
+                                    <input 
+                                        type="text" 
+                                        value={currentFlight.registration} 
+                                        onChange={(e) => handleRegistrationChange(e.target.value)}
+                                        placeholder="ABC123" 
+                                        className="w-full px-3 py-2 border rounded-lg" 
+                                    />
+                                    {showRegAutocomplete && (
+                                        <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg shadow-lg mt-1">
+                                            {filteredAircraft.map((aircraft, i) => (
+                                                <div 
+                                                    key={i}
+                                                    onClick={() => selectAircraftByReg(aircraft)}
+                                                    className="autocomplete-item"
+                                                >
+                                                    {aircraft.registration} - {aircraft.tailNumber}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div><label className="block text-sm font-medium mb-1">From</label><input type="text" value={currentFlight.from} onChange={(e) => setCurrentFlight({...currentFlight, from: e.target.value.toUpperCase()})} placeholder="KJFK" maxLength="4" className="w-full px-3 py-2 border rounded-lg" /></div>
                                 <div><label className="block text-sm font-medium mb-1">To</label><input type="text" value={currentFlight.to} onChange={(e) => setCurrentFlight({...currentFlight, to: e.target.value.toUpperCase()})} placeholder="KLAX" maxLength="4" className="w-full px-3 py-2 border rounded-lg" /></div>
                                 
@@ -289,7 +406,7 @@
                                 <div className="space-y-2">
                                     {flights.map((f) => (
                                         <div key={f.id} className="p-4 bg-gray-50 rounded-lg border hover:border-blue-300">
-                                            <div className="font-medium text-lg">{f.date} - {f.aircraft} {f.tailNumber}</div>
+                                            <div className="font-medium text-lg">{f.date} - {f.aircraft} {f.tailNumber} ({f.registration})</div>
                                             <div className="text-gray-600 mt-1">{f.from} → {f.to}</div>
                                             {f.crewMember && <div className="text-sm text-blue-600 mt-1">Crew: {f.crewMember} ({f.role})</div>}
                                             <div className="text-sm text-gray-500 mt-1">OUT: {f.out} | OFF: {f.off} | ON: {f.on} | IN: {f.in} {f.timeZone && `(${f.timeZone})`}</div>
