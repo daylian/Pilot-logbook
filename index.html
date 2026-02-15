@@ -84,6 +84,8 @@
             'PA-28': { name: 'Piper Cherokee', engineType: 'Piston', engines: 'Single', category: 'SEP' },
             'PA32': { name: 'Piper Saratoga', engineType: 'Piston', engines: 'Single', category: 'SEP' },
             'PA-32': { name: 'Piper Saratoga', engineType: 'Piston', engines: 'Single', category: 'SEP' },
+            'PA18': { name: 'Piper PA-18 Super Cub', engineType: 'Piston', engines: 'Single', category: 'SEP' },
+            'PA-18': { name: 'Piper PA-18 Super Cub', engineType: 'Piston', engines: 'Single', category: 'SEP' },
             'SR20': { name: 'Cirrus SR20', engineType: 'Piston', engines: 'Single', category: 'SEP' },
             'SR22': { name: 'Cirrus SR22', engineType: 'Piston', engines: 'Single', category: 'SEP' },
             'DA40': { name: 'Diamond DA40', engineType: 'Piston', engines: 'Single', category: 'SEP' },
@@ -142,8 +144,6 @@
             'A380': { name: 'Airbus A380', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
             'MD80': { name: 'MD-80', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
             'MD88': { name: 'MD-88', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
-            'PA18': { name: 'Piper PA-18 Super Cub', engineType: 'Piston', engines: 'Single', category: 'SEP' },
-            'PA-18': { name: 'Piper PA-18 Super Cub', engineType: 'Piston', engines: 'Single', category: 'SEP' },
         };
 
         const lookupAircraft = (code) => {
@@ -162,7 +162,7 @@
             const [crewMembers, setCrewMembers] = useState([]);
             const [aircraftRegistry, setAircraftRegistry] = useState([]);
             const [currentFlight, setCurrentFlight] = useState({
-                date: new Date().toISOString().split('T')[0], aircraft: '', aircraftInfo: null, tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', flightTime: '', airTime: '', totalTime: '', pic: '', sic: '', night: '', day: '', instrument: '', dayTakeoffs: 0, nightTakeoffs: 0, dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: ''
+                date: new Date().toISOString().split('T')[0], aircraft: '', aircraftInfo: null, tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', flightTime: '', airTime: '', totalTime: '', pic: '', sic: '', simPIC: '', simSIC: '', night: '', day: '', instrument: '', dayTakeoffs: 0, nightTakeoffs: 0, dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: ''
             });
             const [showSettings, setShowSettings] = useState(false);
             const [useLocalTime, setUseLocalTime] = useState(false);
@@ -331,7 +331,7 @@
 
                 const updatedFlights = flights.map(f => f.id === editingFlight ? {...currentFlight, id: editingFlight} : f);
                 setFlights(updatedFlights);
-                setCurrentFlight({ date: new Date().toISOString().split('T')[0], aircraft: '', aircraftInfo: null, tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', flightTime: '', airTime: '', totalTime: '', pic: '', sic: '', night: '', day: '', instrument: '', dayTakeoffs: 0, nightTakeoffs: 0, dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: '' });
+                setCurrentFlight({ date: new Date().toISOString().split('T')[0], aircraft: '', aircraftInfo: null, tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', flightTime: '', airTime: '', totalTime: '', pic: '', sic: '', simPIC: '', simSIC: '', night: '', day: '', instrument: '', dayTakeoffs: 0, nightTakeoffs: 0, dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: '' });
                 setEditingFlight(null);
                 alert('Flight updated!');
             };
@@ -343,7 +343,7 @@
             };
 
             const cancelEdit = () => {
-                setCurrentFlight({ date: new Date().toISOString().split('T')[0], aircraft: '', aircraftInfo: null, tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', flightTime: '', airTime: '', totalTime: '', pic: '', sic: '', night: '', day: '', instrument: '', dayTakeoffs: 0, nightTakeoffs: 0, dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: '' });
+                setCurrentFlight({ date: new Date().toISOString().split('T')[0], aircraft: '', aircraftInfo: null, tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', flightTime: '', airTime: '', totalTime: '', pic: '', sic: '', simPIC: '', simSIC: '', night: '', day: '', instrument: '', dayTakeoffs: 0, nightTakeoffs: 0, dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: '' });
                 setEditingFlight(null);
             };
 
@@ -364,7 +364,7 @@
                 }
 
                 setFlights([{ ...currentFlight, id: Date.now(), timeZone: useLocalTime ? 'Local' : 'UTC' }, ...flights]);
-                setCurrentFlight({ date: new Date().toISOString().split('T')[0], aircraft: '', aircraftInfo: null, tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', flightTime: '', airTime: '', totalTime: '', pic: '', sic: '', night: '', day: '', instrument: '', dayTakeoffs: 0, nightTakeoffs: 0, dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: '' });
+                setCurrentFlight({ date: new Date().toISOString().split('T')[0], aircraft: '', aircraftInfo: null, tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', flightTime: '', airTime: '', totalTime: '', pic: '', sic: '', simPIC: '', simSIC: '', night: '', day: '', instrument: '', dayTakeoffs: 0, nightTakeoffs: 0, dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: '' });
                 alert('Flight logged!');
             };
 
@@ -372,6 +372,8 @@
                 a.totalTime += parseFloat(f.totalTime || 0);
                 a.pic += parseFloat(f.pic || 0);
                 a.sic += parseFloat(f.sic || 0);
+                a.simPIC += parseFloat(f.simPIC || 0);
+                a.simSIC += parseFloat(f.simSIC || 0);
                 a.day += parseFloat(f.day || 0);
                 a.night += parseFloat(f.night || 0);
                 a.instrument += parseFloat(f.instrument || 0);
@@ -380,7 +382,7 @@
                 a.dayLandings += parseInt(f.dayLandings || 0);
                 a.nightLandings += parseInt(f.nightLandings || 0);
                 return a;
-            }, { totalTime: 0, pic: 0, sic: 0, day: 0, night: 0, instrument: 0, dayTakeoffs: 0, nightTakeoffs: 0, dayLandings: 0, nightLandings: 0 });
+            }, { totalTime: 0, pic: 0, sic: 0, simPIC: 0, simSIC: 0, day: 0, night: 0, instrument: 0, dayTakeoffs: 0, nightTakeoffs: 0, dayLandings: 0, nightLandings: 0 });
 
             const calculateRollingTotals = () => {
                 const now = new Date();
@@ -434,8 +436,11 @@
             const rollingTotals = calculateRollingTotals();
             const categoryTotals = calculateCategoryTotals();
 
+            // Sort flights by date (newest first)
+            const sortedFlights = [...flights].sort((a, b) => new Date(b.date) - new Date(a.date));
+
             const exportToCSV = () => {
-                const headers = ['Date','Aircraft','Type','Engine','Engines','Tail','Registration','From','To','OUT','OFF','ON','IN','Flight','Air','PIC','SIC','Day','Night','IFR','DayTO','NightTO','DayLdg','NightLdg','Appr','Crew','Role','Remarks'];
+                const headers = ['Date','Aircraft','Type','Engine','Engines','Tail','Registration','From','To','OUT','OFF','ON','IN','Flight','Air','PIC','SIC','SIM PIC','SIM SIC','Day','Night','IFR','DayTO','NightTO','DayLdg','NightLdg','Appr','Crew','Role','Remarks'];
                 const rows = flights.map(f => [
                     f.date,
                     f.aircraft,
@@ -454,6 +459,8 @@
                     f.airTime,
                     f.pic,
                     f.sic,
+                    f.simPIC || '',
+                    f.simSIC || '',
                     f.day,
                     f.night,
                     f.instrument,
@@ -477,8 +484,8 @@
 
             const printLogbook = () => {
                 const printWindow = window.open('', '_blank');
-                const sortedFlights = [...flights].sort((a, b) => new Date(a.date) - new Date(b.date));
-                printWindow.document.write(`<!DOCTYPE html><html><head><title>Pilot Logbook</title><style>body{font-family:Arial,sans-serif;margin:20px}.print-header{text-align:center;margin-bottom:20px;font-size:18pt;font-weight:bold}.print-table{width:100%;border-collapse:collapse;font-size:6pt}.print-table th{background:#e0e0e0;border:1px solid black;padding:3px 2px;font-weight:bold;font-size:5pt;text-align:center}.print-table td{border:1px solid black;padding:2px 1px;font-size:6pt;text-align:center}.totals-row{background:#f5f5f5;font-weight:bold}.category-row{background:#e0e7ff;font-weight:bold}</style></head><body><div class="print-header">PILOT LOGBOOK</div><table class="print-table"><thead><tr><th>Date</th><th>Aircraft</th><th>Type</th><th>Engine</th><th>Tail#</th><th>Reg</th><th>From</th><th>To</th><th>OUT</th><th>OFF</th><th>ON</th><th>IN</th><th>Flight</th><th>Air</th><th>PIC</th><th>SIC</th><th>Day</th><th>Night</th><th>IFR</th><th>Day<br/>TO</th><th>Night<br/>TO</th><th>Day<br/>Ldg</th><th>Night<br/>Ldg</th><th>Appr</th><th>Crew</th><th>Role</th><th>Remarks</th></tr></thead><tbody>${sortedFlights.map(f => `<tr><td>${f.date}</td><td>${f.aircraft}</td><td>${f.aircraftInfo ? f.aircraftInfo.name : ''}</td><td>${f.aircraftInfo ? f.aircraftInfo.engineType : ''}</td><td>${f.tailNumber}</td><td>${f.registration}</td><td>${f.from}</td><td>${f.to}</td><td>${f.out}</td><td>${f.off}</td><td>${f.on}</td><td>${f.in}</td><td>${f.flightTime}</td><td>${f.airTime}</td><td>${f.pic}</td><td>${f.sic}</td><td>${f.day}</td><td>${f.night}</td><td>${f.instrument}</td><td>${f.dayTakeoffs || 0}</td><td>${f.nightTakeoffs || 0}</td><td>${f.dayLandings}</td><td>${f.nightLandings}</td><td>${f.approaches}</td><td>${f.crewMember}</td><td>${f.role}</td><td style="text-align:left">${f.remarks}</td></tr>`).join('')}<tr class="totals-row"><td colspan="12"><strong>TOTALS</strong></td><td><strong>${totals.totalTime.toFixed(1)}</strong></td><td></td><td><strong>${totals.pic.toFixed(1)}</strong></td><td><strong>${totals.sic.toFixed(1)}</strong></td><td><strong>${totals.day.toFixed(1)}</strong></td><td><strong>${totals.night.toFixed(1)}</strong></td><td><strong>${totals.instrument.toFixed(1)}</strong></td><td><strong>${totals.dayTakeoffs}</strong></td><td><strong>${totals.nightTakeoffs}</strong></td><td><strong>${totals.dayLandings}</strong></td><td><strong>${totals.nightLandings}</strong></td><td colspan="4"></td></tr><tr class="category-row"><td colspan="12"><strong>CATEGORY TOTALS</strong></td><td colspan="3">SEP: ${categoryTotals.SEP.toFixed(1)}</td><td colspan="3">MEP: ${categoryTotals.MEP.toFixed(1)}</td><td colspan="3">Turbine: ${(categoryTotals.SET + categoryTotals.MET).toFixed(1)}</td><td colspan="6">Jet: ${categoryTotals.Jet.toFixed(1)}</td></tr></tbody></table></body></html>`);
+                const printFlights = [...flights].sort((a, b) => new Date(a.date) - new Date(b.date));
+                printWindow.document.write(`<!DOCTYPE html><html><head><title>Pilot Logbook</title><style>body{font-family:Arial,sans-serif;margin:20px}.print-header{text-align:center;margin-bottom:20px;font-size:18pt;font-weight:bold}.print-table{width:100%;border-collapse:collapse;font-size:5pt}.print-table th{background:#e0e0e0;border:1px solid black;padding:3px 2px;font-weight:bold;font-size:5pt;text-align:center}.print-table td{border:1px solid black;padding:2px 1px;font-size:5pt;text-align:center}.totals-row{background:#f5f5f5;font-weight:bold}.category-row{background:#e0e7ff;font-weight:bold}</style></head><body><div class="print-header">PILOT LOGBOOK</div><table class="print-table"><thead><tr><th>Date</th><th>Aircraft</th><th>Type</th><th>Engine</th><th>Tail#</th><th>Reg</th><th>From</th><th>To</th><th>OUT</th><th>OFF</th><th>ON</th><th>IN</th><th>Flight</th><th>Air</th><th>PIC</th><th>SIC</th><th>SIM<br/>PIC</th><th>SIM<br/>SIC</th><th>Day</th><th>Night</th><th>IFR</th><th>Day<br/>TO</th><th>Night<br/>TO</th><th>Day<br/>Ldg</th><th>Night<br/>Ldg</th><th>Appr</th><th>Crew</th><th>Role</th><th>Remarks</th></tr></thead><tbody>${printFlights.map(f => `<tr><td>${f.date}</td><td>${f.aircraft}</td><td>${f.aircraftInfo ? f.aircraftInfo.name : ''}</td><td>${f.aircraftInfo ? f.aircraftInfo.engineType : ''}</td><td>${f.tailNumber}</td><td>${f.registration}</td><td>${f.from}</td><td>${f.to}</td><td>${f.out}</td><td>${f.off}</td><td>${f.on}</td><td>${f.in}</td><td>${f.flightTime}</td><td>${f.airTime}</td><td>${f.pic}</td><td>${f.sic}</td><td>${f.simPIC || ''}</td><td>${f.simSIC || ''}</td><td>${f.day}</td><td>${f.night}</td><td>${f.instrument}</td><td>${f.dayTakeoffs || 0}</td><td>${f.nightTakeoffs || 0}</td><td>${f.dayLandings}</td><td>${f.nightLandings}</td><td>${f.approaches}</td><td>${f.crewMember}</td><td>${f.role}</td><td style="text-align:left">${f.remarks}</td></tr>`).join('')}<tr class="totals-row"><td colspan="12"><strong>TOTALS</strong></td><td><strong>${totals.totalTime.toFixed(1)}</strong></td><td></td><td><strong>${totals.pic.toFixed(1)}</strong></td><td><strong>${totals.sic.toFixed(1)}</strong></td><td><strong>${totals.simPIC.toFixed(1)}</strong></td><td><strong>${totals.simSIC.toFixed(1)}</strong></td><td><strong>${totals.day.toFixed(1)}</strong></td><td><strong>${totals.night.toFixed(1)}</strong></td><td><strong>${totals.instrument.toFixed(1)}</strong></td><td><strong>${totals.dayTakeoffs}</strong></td><td><strong>${totals.nightTakeoffs}</strong></td><td><strong>${totals.dayLandings}</strong></td><td><strong>${totals.nightLandings}</strong></td><td colspan="4"></td></tr><tr class="category-row"><td colspan="12"><strong>CATEGORY TOTALS</strong></td><td colspan="3">SEP: ${categoryTotals.SEP.toFixed(1)}</td><td colspan="3">MEP: ${categoryTotals.MEP.toFixed(1)}</td><td colspan="4">Turbine: ${(categoryTotals.SET + categoryTotals.MET).toFixed(1)}</td><td colspan="7">Jet: ${categoryTotals.Jet.toFixed(1)}</td></tr></tbody></table></body></html>`);
                 printWindow.document.close();
                 setTimeout(() => printWindow.print(), 250);
             };
@@ -498,7 +505,7 @@
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 p-4 bg-blue-50 rounded-lg">
                                 <div><div className="text-sm text-gray-600">Total Time</div><div className="text-2xl font-bold text-black">{totals.totalTime.toFixed(1)}</div></div>
-                                <div><div className="text-sm text-gray-600">PIC</div><div className="text-2xl font-bold text-black">{totals.pic.toFixed(1)}</div></div>
+                                <div><div className="text-sm text-gray-600">PIC / SIM</div><div className="text-2xl font-bold text-black">{totals.pic.toFixed(1)} / {totals.simPIC.toFixed(1)}</div></div>
                                 <div><div className="text-sm text-gray-600">Day/Night</div><div className="text-2xl font-bold text-black">{totals.day.toFixed(1)}/{totals.night.toFixed(1)}</div></div>
                                 <div><div className="text-sm text-gray-600">Takeoffs/Ldgs</div><div className="text-2xl font-bold text-black">{totals.dayTakeoffs + totals.nightTakeoffs}/{totals.dayLandings + totals.nightLandings}</div></div>
                             </div>
@@ -718,6 +725,8 @@
                                 <div><label className="block text-sm font-medium mb-1">Night (hrs)</label><input type="number" step="0.1" value={currentFlight.night} onChange={(e) => setCurrentFlight({...currentFlight, night: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
                                 <div><label className="block text-sm font-medium mb-1">PIC (hrs)</label><input type="number" step="0.1" value={currentFlight.pic} onChange={(e) => setCurrentFlight({...currentFlight, pic: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
                                 <div><label className="block text-sm font-medium mb-1">SIC (hrs)</label><input type="number" step="0.1" value={currentFlight.sic} onChange={(e) => setCurrentFlight({...currentFlight, sic: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
+                                <div><label className="block text-sm font-medium mb-1">SIM PIC (hrs)</label><input type="number" step="0.1" value={currentFlight.simPIC} onChange={(e) => setCurrentFlight({...currentFlight, simPIC: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
+                                <div><label className="block text-sm font-medium mb-1">SIM SIC (hrs)</label><input type="number" step="0.1" value={currentFlight.simSIC} onChange={(e) => setCurrentFlight({...currentFlight, simSIC: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
                                 <div><label className="block text-sm font-medium mb-1">Instrument</label><input type="number" step="0.1" value={currentFlight.instrument} onChange={(e) => setCurrentFlight({...currentFlight, instrument: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
                                 <div><label className="block text-sm font-medium mb-1">Day Takeoffs</label><input type="number" value={currentFlight.dayTakeoffs} onChange={(e) => setCurrentFlight({...currentFlight, dayTakeoffs: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
                                 <div><label className="block text-sm font-medium mb-1">Night Takeoffs</label><input type="number" value={currentFlight.nightTakeoffs} onChange={(e) => setCurrentFlight({...currentFlight, nightTakeoffs: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
@@ -756,7 +765,7 @@
                                 <p className="text-gray-500 text-center py-8">No flights logged yet</p>
                             ) : (
                                 <div className="space-y-2">
-                                    {flights.map((f) => (
+                                    {sortedFlights.map((f) => (
                                         <div key={f.id} className="p-4 bg-gray-50 rounded-lg border hover:border-blue-300">
                                             <div className="font-medium text-lg">{f.date} - {f.aircraft} {f.tailNumber} ({f.registration})</div>
                                             {f.aircraftInfo && <div className="text-xs text-gray-500">{f.aircraftInfo.name} - {f.aircraftInfo.engines} Engine {f.aircraftInfo.engineType}</div>}
@@ -770,6 +779,9 @@
                                                 <div><span className="text-gray-500">Day/Night:</span> {f.day}/{f.night}h</div>
                                                 <div><span className="text-gray-500">TO/Ldg:</span> {(f.dayTakeoffs || 0) + (f.nightTakeoffs || 0)}/{f.dayLandings}/{f.nightLandings}</div>
                                             </div>
+                                            {(f.simPIC || f.simSIC) && (
+                                                <div className="text-sm text-purple-600 mt-1">SIM - PIC: {f.simPIC || 0}h | SIC: {f.simSIC || 0}h</div>
+                                            )}
                                             {f.remarks && <div className="mt-2 text-sm text-gray-600 italic">{f.remarks}</div>}
                                             <div className="flex gap-2 mt-3">
                                                 <button onClick={() => editFlight(f)} className="flex-1 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600">
