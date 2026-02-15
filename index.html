@@ -33,17 +33,17 @@
 
     <script>
         // Register Service Worker
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/Pilot-logbook/service-worker.js')
-            .then(registration => {
-                console.log('ServiceWorker registered: ', registration);
-            })
-            .catch(err => {
-                console.log('ServiceWorker registration failed: ', err);
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registered: ', registration);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
             });
-    });
-}
+        }
 
         // PWA Install Prompt
         let deferredPrompt;
@@ -119,6 +119,8 @@ if ('serviceWorker' in navigator) {
             'E175': { name: 'E175', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
             'E190': { name: 'E190', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
             'E195': { name: 'E195', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'E290': { name: 'E190-E2', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
+            'E295': { name: 'E195-E2', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
             'B737': { name: 'Boeing 737', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
             'B738': { name: 'Boeing 737-800', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
             'B739': { name: 'Boeing 737-900', engineType: 'Jet', engines: 'Multi', category: 'Jet' },
@@ -167,6 +169,7 @@ if ('serviceWorker' in navigator) {
             const [showRegAutocomplete, setShowRegAutocomplete] = useState(false);
             const [filteredCrewMembers, setFilteredCrewMembers] = useState([]);
             const [filteredAircraft, setFilteredAircraft] = useState([]);
+            const [editingFlight, setEditingFlight] = useState(null);
             const autocompleteRef = useRef(null);
             const tailAutocompleteRef = useRef(null);
             const regAutocompleteRef = useRef(null);
@@ -209,13 +212,38 @@ if ('serviceWorker' in navigator) {
                 return diff.toFixed(1);
             };
 
+            const calculateDayNight = (offTime, onTime, flightTime) => {
+                if (!offTime || !onTime || !flightTime) return { day: '', night: '' };
+                
+                const takeoffHour = parseInt(offTime.split(':')[0]);
+                const landingHour = parseInt(onTime.split(':')[0]);
+                
+                if (takeoffHour >= 6 && takeoffHour < 18) {
+                    return { day: flightTime, night: '' };
+                } else {
+                    return { day: '', night: flightTime };
+                }
+            };
+
             useEffect(() => {
                 if (currentFlight.out && currentFlight.in) {
-                    setCurrentFlight(p => ({ ...p, blockTime: calculateTimeDiff(p.out, p.in) }));
+                    const blockTime = calculateTimeDiff(currentFlight.out, currentFlight.in);
+                    setCurrentFlight(p => ({ 
+                        ...p, 
+                        blockTime: blockTime,
+                        pic: p.pic || blockTime
+                    }));
                 }
                 if (currentFlight.off && currentFlight.on) {
                     const ft = calculateTimeDiff(currentFlight.off, currentFlight.on);
-                    setCurrentFlight(p => ({ ...p, flightTime: ft, totalTime: ft }));
+                    const dayNight = calculateDayNight(currentFlight.off, currentFlight.on, ft);
+                    setCurrentFlight(p => ({ 
+                        ...p, 
+                        flightTime: ft, 
+                        totalTime: ft,
+                        day: p.day || dayNight.day,
+                        night: p.night || dayNight.night
+                    }));
                 }
             }, [currentFlight.out, currentFlight.in, currentFlight.off, currentFlight.on, useLocalTime]);
 
@@ -282,7 +310,47 @@ if ('serviceWorker' in navigator) {
                 setShowRegAutocomplete(false);
             };
 
+            const editFlight = (flight) => {
+                setCurrentFlight({...flight});
+                setEditingFlight(flight.id);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            const updateFlight = () => {
+                if (!currentFlight.date || !currentFlight.aircraft) { alert('Need Date and Aircraft'); return; }
+                
+                if (currentFlight.crewMember && !crewMembers.find(m => m.name === currentFlight.crewMember)) {
+                    setCrewMembers([...crewMembers, { name: currentFlight.crewMember, role: currentFlight.role }]);
+                }
+
+                if (currentFlight.tailNumber && currentFlight.registration && !aircraftRegistry.find(a => a.tailNumber === currentFlight.tailNumber)) {
+                    setAircraftRegistry([...aircraftRegistry, { tailNumber: currentFlight.tailNumber, registration: currentFlight.registration }]);
+                }
+
+                const updatedFlights = flights.map(f => f.id === editingFlight ? {...currentFlight, id: editingFlight} : f);
+                setFlights(updatedFlights);
+                setCurrentFlight({ date: new Date().toISOString().split('T')[0], aircraft: '', aircraftInfo: null, tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', blockTime: '', flightTime: '', totalTime: '', pic: '', sic: '', night: '', day: '', instrument: '', dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: '' });
+                setEditingFlight(null);
+                alert('Flight updated!');
+            };
+
+            const deleteFlight = (id) => {
+                if (confirm('Delete this flight?')) {
+                    setFlights(flights.filter(f => f.id !== id));
+                }
+            };
+
+            const cancelEdit = () => {
+                setCurrentFlight({ date: new Date().toISOString().split('T')[0], aircraft: '', aircraftInfo: null, tailNumber: '', registration: '', from: '', to: '', out: '', off: '', on: '', in: '', blockTime: '', flightTime: '', totalTime: '', pic: '', sic: '', night: '', day: '', instrument: '', dayLandings: 0, nightLandings: 0, approaches: 0, crewMember: '', role: 'First Officer', remarks: '' });
+                setEditingFlight(null);
+            };
+
             const addFlight = () => {
+                if (editingFlight) {
+                    updateFlight();
+                    return;
+                }
+
                 if (!currentFlight.date || !currentFlight.aircraft) { alert('Need Date and Aircraft'); return; }
                 
                 if (currentFlight.crewMember && !crewMembers.find(m => m.name === currentFlight.crewMember)) {
@@ -330,17 +398,17 @@ if ('serviceWorker' in navigator) {
 
             const calculateCategoryTotals = () => {
                 const categories = {
-                    SEP: 0,  // Single Engine Piston
-                    MEP: 0,  // Multi Engine Piston
-                    SET: 0,  // Single Engine Turbine
-                    MET: 0,  // Multi Engine Turbine
-                    Jet: 0   // Jet
+                    SEP: 0,
+                    MEP: 0,
+                    SET: 0,
+                    MET: 0,
+                    Jet: 0
                 };
                 
                 flights.forEach(f => {
                     const time = parseFloat(f.totalTime || 0);
                     if (f.aircraftInfo && f.aircraftInfo.category) {
-                        categories[f.aircraftInfo.category] += time;
+                        categories[f.aircraftInfo.category] = (categories[f.aircraftInfo.category] || 0) + time;
                     }
                 });
                 
@@ -511,7 +579,7 @@ if ('serviceWorker' in navigator) {
 
                     <div className="max-w-4xl mx-auto mb-6">
                         <div className="bg-white rounded-lg shadow-lg p-6">
-                            <h2 className="text-xl font-bold mb-4">Log Flight</h2>
+                            <h2 className="text-xl font-bold mb-4">{editingFlight ? 'Edit Flight' : 'Log Flight'}</h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div><label className="block text-sm font-medium mb-1">Date</label><input type="date" value={currentFlight.date} onChange={(e) => setCurrentFlight({...currentFlight, date: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
                                 <div>
@@ -634,9 +702,16 @@ if ('serviceWorker' in navigator) {
                                 <div><label className="block text-sm font-medium mb-1">Approaches</label><input type="number" value={currentFlight.approaches} onChange={(e) => setCurrentFlight({...currentFlight, approaches: e.target.value})} className="w-full px-3 py-2 border rounded-lg" /></div>
                                 <div className="md:col-span-2"><label className="block text-sm font-medium mb-1">Remarks</label><input type="text" value={currentFlight.remarks} onChange={(e) => setCurrentFlight({...currentFlight, remarks: e.target.value})} placeholder="Training, checkride, etc." className="w-full px-3 py-2 border rounded-lg" /></div>
                             </div>
-                            <button onClick={addFlight} className="mt-4 w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium">
-                                <Save />Log Flight
-                            </button>
+                            <div className="mt-4 flex gap-2">
+                                <button onClick={addFlight} className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium">
+                                    <Save />{editingFlight ? 'Update Flight' : 'Log Flight'}
+                                </button>
+                                {editingFlight && (
+                                    <button onClick={cancelEdit} className="px-6 py-3 bg-gray-400 text-white rounded-lg font-medium">
+                                        Cancel
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
 
@@ -672,6 +747,14 @@ if ('serviceWorker' in navigator) {
                                                 <div><span className="text-gray-500">Ldg:</span> {f.dayLandings}/{f.nightLandings}</div>
                                             </div>
                                             {f.remarks && <div className="mt-2 text-sm text-gray-600 italic">{f.remarks}</div>}
+                                            <div className="flex gap-2 mt-3">
+                                                <button onClick={() => editFlight(f)} className="flex-1 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600">
+                                                    Edit
+                                                </button>
+                                                <button onClick={() => deleteFlight(f.id)} className="flex-1 px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600">
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
